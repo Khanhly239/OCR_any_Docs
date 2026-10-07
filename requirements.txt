@@ -1,0 +1,81 @@
+# ── Web Framework ─────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+aiofiles==24.1.0
+
+# ── UI ────────────────────────────────────────────────────
+gradio==5.31.0
+
+# ── CLI ───────────────────────────────────────────────────
+typer[all]==0.15.1
+rich==13.9.4
+
+# ── OCR Engines ───────────────────────────────────────────
+# NOTE: Cài PaddlePaddle GPU qua scripts/install_gpu.ps1
+# CPU fallback (nếu chưa cài GPU build):
+#   pip install paddlepaddle==2.6.2
+paddleocr==2.9.1
+
+# Chandra OCR 2 (VLM thay Surya — Qwen2-VL based, cần ~8GB VRAM)
+chandra-ocr[hf]
+
+# OpenOCR (PyTorch/SVTRv2 detection + PaddleOCR vi_PP-OCRv3 recognition)
+# Requires PyTorch — cài bản CUDA trước qua scripts/install_gpu.ps1
+openocr-python==0.1.5
+
+# EasyOCR — Vietnamese-specific character model, hỗ trợ đúng dấu tiếng Việt
+# Model ~200MB tự download khi khởi tạo lần đầu vào models/easyocr/
+easyocr
+
+# Marker — KHÔNG cài vào main venv (xung đột transformers 5.x)
+# Cài vào venv riêng: scripts\setup_marker_venv.ps1
+# https://github.com/datalab-to/marker
+
+# Vintern-1B (InternVL2 + Qwen2 fine-tuned tiếng Việt, ~1B params, ~2GB VRAM)
+einops
+timm
+sentencepiece
+tiktoken
+
+# ── PDF Support ───────────────────────────────────────────
+pdf2image==1.17.0
+# Poppler Windows: choco install poppler  HOẶC  xem scripts/install_gpu.ps1
+# Fallback PDF renderer (không cần Poppler):
+pymupdf==1.25.5
+
+# ── Image Processing ──────────────────────────────────────
+opencv-python-headless
+Pillow>=10.2.0,<11.0.0
+numpy>=1.26.0,<2.0
+scikit-image
+
+# ── Data & Export ─────────────────────────────────────────
+pandas
+openpyxl==3.1.5
+pydantic==2.10.6
+pydantic-settings==2.7.1
+
+# ── Vietnamese Text ───────────────────────────────────────
+regex==2024.11.6
+unicodedata2==15.1.0
+
+# ── Utilities ─────────────────────────────────────────────
+python-dotenv==1.0.1
+PyYAML==6.0.2
+httpx==0.28.1
+tqdm==4.67.1
+loguru==0.7.3
+
+# ── PyTorch (cần cài bản CUDA — xem scripts/install_gpu.ps1) ──────────────
+# Yêu cầu CUDA 12.6+ (transformers 5.x cần torch>=2.7 cho float8 support):
+# pip install torch==2.12.0+cu126 torchvision==0.27.0+cu126 \
+#     --index-url https://download.pytorch.org/whl/cu126
+# Nếu dùng CUDA 12.8:
+# pip install torch==2.11.0+cu128 torchvision==0.26.0+cu128 \
+#     --index-url https://download.pytorch.org/whl/cu128
+
+# ── Testing ───────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.25.3
+anyio==4.8.0

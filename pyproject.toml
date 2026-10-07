@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ocrdoc"
+version = "1.0.0"
+description = "Vietnamese + English local OCR system (PaddleOCR + Surya)"
+requires-python = ">=3.10"
+
+[project.scripts]
+ocrdoc = "cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ocrdoc*", "config*", "api*", "ui*", "cli*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "gpu: requires CUDA GPU (deselect with -m 'not gpu')",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

@@ -1,0 +1,35 @@
+services:
+  chandra-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile.chandra
+    image: chandra-ocr:latest
+    container_name: chandra-ocr
+    ports:
+      - "7860:7860"
+    volumes:
+      # Model cache — giữ lại model sau khi restart
+      - hf_cache:/app/hf_cache
+    environment:
+      - HF_HOME=/app/hf_cache
+      - TRANSFORMERS_CACHE=/app/hf_cache
+      # Uncomment nếu dùng model private hoặc tăng rate limit tải model
+      # - HF_TOKEN=hf_xxxxxxxxxxxx
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  hf_cache:
+    driver: local

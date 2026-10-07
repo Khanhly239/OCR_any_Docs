@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCRdoc Demo</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #f1f5f9;
+  --surface: #ffffff;
+  --border:  #e2e8f0;
+  --accent:  #6366f1;
+  --accent2: #4f46e5;
+  --text:    #1e293b;
+  --muted:   #64748b;
+  --ok:      #16a34a;
+  --err:     #dc2626;
+  --radius:  12px;
+  --shadow:  0 2px 12px #0000000d;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 2rem 1rem;
+}
+
+.wrap { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+/* ── Header ────────────────────────────────────── */
+.header { text-align: center; }
+.header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -.5px; }
+.header h1 span { color: var(--accent); }
+.header p  { color: var(--muted); margin-top: .25rem; }
+
+/* ── Card ──────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+}
+.card-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: .75rem;
+}
+
+/* ── Drop zone ─────────────────────────────────── */
+#dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  user-select: none;
+}
+#dropzone:hover, #dropzone.over { border-color: var(--accent); background: #eef2ff; }
+#dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#dropzone .icon { font-size: 2.2rem; }
+#dropzone .hint { color: var(--muted); font-size: .9rem; margin-top: .4rem; }
+#dropzone .file-info {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: #f0f4ff; border: 1px solid #c7d2fe;
+  border-radius: 8px; padding: .3rem .8rem;
+  font-size: .9rem; font-weight: 500; margin-top: .75rem;
+  color: var(--accent2);
+}
+
+/* ── Engine buttons ────────────────────────────── */
+.engines { display: flex; flex-wrap: wrap; gap: .5rem; }
+.eng {
+  padding: .45rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: all .15s;
+  white-space: nowrap;
+}
+.eng:hover { border-color: var(--accent); color: var(--accent); }
+.eng.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.eng .badge {
+  display: inline-block;
+  background: #fde68a; color: #92400e;
+  font-size: .65rem; font-weight: 700;
+  padding: .1rem .35rem; border-radius: 4px;
+  margin-left: .3rem; vertical-align: middle;
+}
+
+/* ── Run button ────────────────────────────────── */
+#runBtn {
+  width: 100%;
+  padding: .85rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  letter-spacing: .02em;
+}
+#runBtn:hover:not(:disabled) { background: var(--accent2); }
+#runBtn:active:not(:disabled) { transform: scale(.99); }
+#runBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── Progress ──────────────────────────────────── */
+#progressCard { display: none; }
+.progress-row {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .35rem 0;
+  font-size: .9rem;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn .25s;
+}
+.progress-row:last-child { border-bottom: none; }
+.progress-row .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.progress-row.done .dot  { background: var(--ok); }
+.progress-row.error .dot { background: var(--err); }
+.progress-row.spin .dot  { animation: spin .7s linear infinite; }
+#elapsed {
+  margin-top: .75rem;
+  font-size: .85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Result ────────────────────────────────────── */
+#resultCard { display: none; }
+.result-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .75rem;
+  margin-bottom: .9rem;
+}
+.tag {
+  background: #f0f4ff; border: 1px solid #c7d2fe;
+  color: var(--accent2); border-radius: 6px;
+  font-size: .8rem; font-weight: 600;
+  padding: .2rem .6rem;
+}
+#resultText {
+  width: 100%;
+  min-height: 280px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: .85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  resize: vertical;
+  outline: none;
+  color: var(--text);
+  line-height: 1.7;
+  background: #fafafa;
+}
+#resultText:focus { border-color: var(--accent); }
+.actions { display: flex; gap: .6rem; margin-top: .75rem; flex-wrap: wrap; }
+.action-btn {
+  padding: .45rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: all .15s;
+  display: flex; align-items: center; gap: .35rem;
+}
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.action-btn.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.action-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+/* ── Error ─────────────────────────────────────── */
+#errorCard { display: none; }
+#errorCard .msg {
+  color: var(--err);
+  font-size: .9rem;
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); border-radius: 50%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>OCR<span>doc</span></h1>
+    <p>OCR Tiếng Việt + Tiếng Anh &mdash; chạy hoàn toàn local</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-label">Tài liệu</div>
+    <div id="dropzone">
+      <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.tiff,.tif,.bmp,.pdf">
+      <div class="icon">📄</div>
+      <div style="font-weight:600;margin-top:.5rem">Kéo thả file vào đây</div>
+      <div class="hint">hoặc click để chọn &nbsp;·&nbsp; PNG · JPG · TIFF · PDF</div>
+      <div id="fileInfo"></div>
+    </div>
+  </div>
+
+  <!-- Engine -->
+  <div class="card">
+    <div class="card-label">Engine / Model</div>
+    <div class="engines">
+      <button class="eng active" data-mode="auto">🔍 Tự động</button>
+      <button class="eng" data-mode="structured" title="Form, invoice, bảng biểu — tiếng Việt có dấu">📊 Paddle form/bảng</button>
+      <button class="eng" data-mode="vintern" title="VLM tiếng Việt có dấu ~2GB VRAM">🇻🇳 Vintern 1B <span class="badge">⭐</span></button>
+      <button class="eng" data-mode="easyocr" title="Tiếng Việt có dấu, ảnh chụp">👁 EasyOCR</button>
+      <button class="eng" data-mode="unstructured" title="Văn bản thường — tiếng Việt có dấu, nhanh hơn PPStructure">📄 Paddle văn bản</button>
+      <button class="eng" data-mode="chandra" data-warn="Chandra 7B cần ≥7GB VRAM. RTX 3050 Laptop chỉ có 4GB → sẽ bị lỗi. Dùng Vintern 1B thay thế.">🤖 Chandra 7B <span class="badge" style="background:#fee2e2;color:#991b1b">4GB!</span></button>
+      <button class="eng" data-mode="openocr">🔧 OpenOCR</button>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <button id="runBtn">▶&nbsp;&nbsp;Chạy OCR</button>
+
+  <!-- Progress -->
+  <div class="card" id="progressCard">
+    <div class="card-label">Tiến trình</div>
+    <div id="progressSteps"></div>
+    <div id="elapsed">0.0s</div>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="resultCard">
+    <div class="card-label">Kết quả</div>
+    <div class="result-meta" id="resultMeta"></div>
+    <textarea id="resultText" readonly spellcheck="false"></textarea>
+    <div class="actions">
+      <button class="action-btn primary" onclick="copyResult()">📋&nbsp;Copy</button>
+      <button class="action-btn" onclick="downloadTxt()">⬇&nbsp;Tải .txt</button>
+      <button class="action-btn" onclick="downloadJson()">⬇&nbsp;JSON</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="card" id="errorCard">
+    <div class="card-label" style="color:var(--err)">Lỗi</div>
+    <div class="msg" id="errorMsg"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+'use strict';
+
+// ── State ────────────────────────────────────────────────────────
+let selMode   = 'auto';
+let selFile   = null;
+let lastJson  = null;
+let timerRef  = null;
+const t0Ref   = { v: 0 };
+
+// ── Engine pills ─────────────────────────────────────────────────
+const warnBanner = (() => {
+  const el = document.createElement('div');
+  el.style.cssText = 'display:none;margin-top:.6rem;padding:.5rem .9rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:.85rem;color:#b91c1c;';
+  document.querySelector('.engines').after(el);
+  return el;
+})();
+
+document.querySelectorAll('.eng').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.eng.active').classList.remove('active');
+    btn.classList.add('active');
+    selMode = btn.dataset.mode;
+    const warn = btn.dataset.warn;
+    if (warn) { warnBanner.textContent = '⚠ ' + warn; warnBanner.style.display = 'block'; }
+    else       { warnBanner.style.display = 'none'; }
+  });
+});
+
+// ── Drop zone ─────────────────────────────────────────────────────
+const dz   = document.getElementById('dropzone');
+const finp = document.getElementById('fileInput');
+
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  setFile(e.dataTransfer.files[0]);
+});
+finp.addEventListener('change', e => setFile(e.target.files[0]));
+
+function setFile(f) {
+  if (!f) return;
+  selFile = f;
+  const kb = (f.size / 1024).toFixed(1);
+  const info = document.getElementById('fileInfo');
+  info.innerHTML = `<div class="file-info">📎 ${f.name} &nbsp; <span style="color:var(--muted)">${kb} KB</span></div>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function addStep(text, state = '') {
+  const row = document.createElement('div');
+  row.className = 'progress-row ' + state;
+  row.innerHTML = `<span class="dot"></span><span>${text}</span>`;
+  document.getElementById('progressSteps').appendChild(row);
+  return row;
+}
+
+function tag(text, color = '') {
+  return `<span class="tag" style="${color ? 'background:'+color[0]+';border-color:'+color[1]+';color:'+color[2] : ''}">${text}</span>`;
+}
+
+function show(id)  { document.getElementById(id).style.display = 'block'; }
+function hide(id)  { document.getElementById(id).style.display = 'none'; }
+
+// ── Main OCR ──────────────────────────────────────────────────────
+document.getElementById('runBtn').addEventListener('click', runOCR);
+
+async function runOCR() {
+  if (!selFile) { alert('Vui lòng chọn file trước'); return; }
+
+  // Reset UI
+  document.getElementById('progressSteps').innerHTML = '';
+  document.getElementById('elapsed').textContent = '0.0s';
+  hide('resultCard'); hide('errorCard');
+  show('progressCard');
+  document.getElementById('runBtn').disabled = true;
+  lastJson = null;
+
+  // Live timer
+  t0Ref.v = Date.now();
+  clearInterval(timerRef);
+  timerRef = setInterval(() => {
+    document.getElementById('elapsed').textContent =
+      ((Date.now() - t0Ref.v) / 1000).toFixed(1) + 's';
+  }, 100);
+
+  const step1 = addStep('Đang upload file...', 'spin');
+
+  try {
+    const fd = new FormData();
+    fd.append('file',    selFile);
+    fd.append('mode',    selMode);
+    fd.append('formats', 'txt,json');
+
+    const resp = await fetch('/api/v1/ocr/process/stream', {
+      method: 'POST', body: fd,
+    });
+
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({ detail: `HTTP ${resp.status}` }));
+      throw new Error(e.detail || `HTTP ${resp.status}`);
+    }
+
+    step1.classList.remove('spin');
+    step1.classList.add('done');
+    step1.querySelector('span:last-child').textContent = 'File đã upload';
+
+    // ── Parse SSE stream ────────────────────────────────────────
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+    let   engineName = selMode;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      // SSE lines: "data: {...}\n\n"
+      const parts = buf.split('\n\n');
+      buf = parts.pop() ?? '';
+
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith('data:')) continue;
+        let ev;
+        try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+
+        if (ev.event === 'start') {
+          addStep(`Phát hiện ${ev.total_pages} trang`, 'done');
+
+        } else if (ev.event === 'classified') {
+          addStep(`Loại tài liệu: ${ev.doc_type}`, 'done');
+
+        } else if (ev.event === 'ocr_start') {
+          engineName = ev.engine ?? selMode;
+          addStep(`${engineName} — đang xử lý trang ${ev.page}/${ev.total}...`, 'spin');
+
+        } else if (ev.event === 'ocr_done') {
+          const rows = document.querySelectorAll('#progressSteps .progress-row.spin');
+          rows.forEach(r => { r.classList.remove('spin'); r.classList.add('done'); });
+
+        } else if (ev.event === 'done') {
+          clearInterval(timerRef);
+          const sec = (ev.total_ms / 1000).toFixed(1);
+          document.getElementById('elapsed').textContent = sec + 's';
+          addStep(`Hoàn tất ${sec}s`, 'done');
+
+          const txt  = ev.results?.txt  ?? '';
+          const json = ev.results?.json ?? null;
+          lastJson = json;
+
+          showResult(txt, engineName, ev.total_ms);
+
+        } else if (ev.event === 'error') {
+          throw new Error(ev.detail || 'OCR thất bại');
+        }
+      }
+    }
+
+  } catch (err) {
+    clearInterval(timerRef);
+    addStep('Lỗi: ' + err.message, 'error');
+    document.getElementById('errorMsg').textContent = err.message;
+    show('errorCard');
+  } finally {
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+function showResult(txt, engine, ms) {
+  document.getElementById('resultText').value = txt;
+
+  const sec   = (ms / 1000).toFixed(1);
+  const chars = txt.length.toLocaleString('vi');
+  const words = txt.trim() ? txt.trim().split(/\s+/).length.toLocaleString('vi') : 0;
+
+  document.getElementById('resultMeta').innerHTML =
+    tag(engine) +
+    tag(sec + 's') +
+    tag(chars + ' ký tự') +
+    tag(words + ' từ');
+
+  show('resultCard');
+  document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Actions ────────────────────────────────────────────────────────
+function copyResult() {
+  const txt = document.getElementById('resultText').value;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓&nbsp;Đã copy';
+    setTimeout(() => { btn.innerHTML = orig; }, 1500);
+  });
+}
+
+function downloadTxt() {
+  const txt  = document.getElementById('resultText').value;
+  const name = (selFile?.name ?? 'result').replace(/\.[^.]+$/, '') + '.txt';
+  _dl(new Blob([txt], { type: 'text/plain;charset=utf-8' }), name);
+}
+
+function downloadJson() {
+  if (!lastJson) { alert('Chưa có JSON — chọn định dạng json rồi chạy lại'); return; }
+  const name = (selFile?.name ?? 'result').replace(/\.[^.]+$/, '') + '.json';
+  _dl(new Blob([lastJson], { type: 'application/json;charset=utf-8' }), name);
+}
+
+function _dl(blob, name) {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: name,
+  });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+</script>
+</body>
+</html>

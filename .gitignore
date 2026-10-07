@@ -1,0 +1,62 @@
+# Models (large binary files)
+models/
+
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+
+# Virtual environments
+.venv/
+venv/
+env/
+scripts/marker_venv/
+
+# Hugging Face / model caches
+hf_cache/
+*.onnx
+*.pdparams
+*.pdmodel
+*.pth
+*.safetensors
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OCR output
+out/
+output/
+*.log
+
+# Tài liệu mẫu chứa dữ liệu nhạy cảm — không commit
+image/
+test_crop.png

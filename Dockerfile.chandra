@@ -1,0 +1,58 @@
+# ── Chandra OCR 2 — Docker Image ────────────────────────────────────────────
+# Build : docker build -f Dockerfile.chandra -t chandra-ocr .
+# Run   : docker compose -f docker-compose.chandra.yml up
+
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+
+# ── System deps ───────────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        libgl1 \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ── Step 1: core Python deps (trước chandra-ocr) ─────────────────────────────
+RUN pip install --no-cache-dir \
+    "gradio>=4.40.0" \
+    "huggingface_hub>=0.23.0" \
+    "Pillow>=10.0.0" \
+    "fastapi>=0.110.0" \
+    "uvicorn[standard]>=0.29.0" \
+    "python-multipart>=0.0.9" \
+    "pymupdf>=1.24.0" \
+    "bitsandbytes>=0.43.0" \
+    "underthesea>=6.8.0" \
+    "accelerate>=0.30.0"
+
+# ── Step 2: chandra-ocr (kéo theo transformers 5.x, overwrite torch → CPU) ───
+RUN pip install --no-cache-dir "chandra-ocr[hf]"
+
+# ── Step 3: reinstall CUDA torch + bitsandbytes đúng version sau chandra-ocr ──
+RUN pip install --no-cache-dir \
+    "torch==2.6.0+cu124" \
+    "torchvision==0.21.0+cu124" \
+    --index-url https://download.pytorch.org/whl/cu124
+
+RUN pip install --no-cache-dir --force-reinstall "bitsandbytes>=0.45.0"
+
+# ── App ───────────────────────────────────────────────────────────────────────
+COPY demo_chandra.py .
+
+# HuggingFace cache — mount volume để model không tải lại mỗi lần restart
+ENV HF_HOME=/app/hf_cache
+ENV TRANSFORMERS_CACHE=/app/hf_cache
+ENV GRADIO_SERVER_NAME=0.0.0.0
+
+VOLUME ["/app/hf_cache"]
+
+EXPOSE 7860
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:7860/ || exit 1
+
+CMD ["python", "demo_chandra.py"]
