@@ -1,5 +1,8 @@
 # 🔍 OCRdoc
 
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+
 **Hệ thống OCR tiếng Việt + tiếng Anh, chạy hoàn toàn local — không gửi tài liệu ra ngoài.**
 
 OCRdoc gom 6 OCR engine (truyền thống + Vision-Language Model) vào một pipeline duy nhất: tự động phân loại tài liệu, chọn engine phù hợp, chuẩn hoá dấu tiếng Việt, rồi xuất ra `txt` / `markdown` / `json` / `xlsx`. Dùng được qua **CLI**, **REST API** hoặc **web UI**.
@@ -160,3 +163,22 @@ python scripts/benchmark.py # so sánh tốc độ/độ chính xác giữa các
 ## 🛠 Stack
 
 PaddleOCR · Chandra OCR 2 · EasyOCR · OpenOCR · Vintern-1B · Marker/Surya · PyTorch · FastAPI · Gradio · Typer · Pydantic · OpenCV · PyMuPDF
+
+---
+
+## 📜 License
+
+Mã nguồn OCRdoc phát hành theo giấy phép **[Apache License 2.0](LICENSE)**.
+
+### Giấy phép của các thành phần bên thứ ba
+
+Phần lớn dependency đều dùng giấy phép permissive (Apache-2.0 / MIT / BSD), nhưng có hai ngoại lệ bạn cần lưu ý khi tự deploy:
+
+| Thành phần | Giấy phép | Ảnh hưởng |
+|---|---|---|
+| **PyMuPDF** (`pymupdf`) | **AGPL-3.0** hoặc giấy phép thương mại từ Artifex | Dùng làm PDF renderer dự phòng. AGPL ràng buộc cả khi **phục vụ qua mạng** — nếu bạn chạy OCRdoc thành dịch vụ web công khai, bạn phải mở mã nguồn toàn bộ dịch vụ, **hoặc** mua giấy phép thương mại từ Artifex, **hoặc** gỡ `pymupdf` và chỉ dùng `pdf2image` + Poppler. |
+| **marker-pdf**, **surya-ocr** | **GPL-3.0-or-later** | Chỉ dùng cho engine `marker`, cài trong venv riêng và gọi qua subprocess nên tách biệt khỏi mã OCRdoc. Nếu bạn **không** chạy `setup_marker_venv.ps1` thì không dính GPL. |
+
+Các engine còn lại — PaddleOCR, EasyOCR, OpenOCR, Chandra OCR 2 — đều Apache-2.0.
+
+> ⚠️ Phần trên chỉ là tóm tắt kỹ thuật, không phải tư vấn pháp lý. Nếu dùng cho mục đích thương mại, hãy tự kiểm tra lại giấy phép của từng dependency và của trọng số model (model weights có giấy phép riêng, tách biệt với mã nguồn thư viện).
